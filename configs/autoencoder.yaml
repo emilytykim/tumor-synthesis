@@ -1,0 +1,35 @@
+# [PROPOSAL Stage 1] 3D VQGAN-style autoencoder on unlabeled CT volumes
+# [MONAI] architecture params follow MONAI AutoencoderKL defaults for 3D
+
+defaults:
+  - base
+
+stage: autoencoder
+
+model:
+  # [MONAI] AutoencoderKL spatial_dims=3
+  spatial_dims: 3
+  in_channels: 1           # single-channel CT
+  out_channels: 1
+  latent_channels: 4       # z-space dimensionality [LDM]
+  # encoder/decoder channel progression
+  num_channels: [32, 64, 64]
+  attention_levels: [false, false, true]
+  num_res_blocks: 2
+  norm_num_groups: 16
+  # [PROPOSAL] VQGAN-style: use perceptual + KL losses
+  use_perceptual_loss: false  # set true if torchvision VGG available
+  kl_weight: 1.0e-6          # [LDM] small KL weight keeps latents near N(0,1)
+
+training:
+  batch_size: 1              # [ENG] 96^3 patches are memory-heavy
+  max_epochs: 200
+  lr: 1.0e-4
+  lr_scheduler: cosine
+  warmup_epochs: 5
+  val_interval: 10
+  # losses
+  recon_loss: l1             # [PROPOSAL] VQGAN uses L1 + perceptual
+  adv_weight: 0.5            # [PROPOSAL] adversarial component (PatchGAN discriminator)
+  use_discriminator: false   # set true for full VQGAN; false = simpler AE first [ENG]
+  save_best_metric: val_recon_loss

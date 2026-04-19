@@ -1,0 +1,44 @@
+# [PROPOSAL Stage 2] Conditional latent diffusion — tumor mask + healthy context
+# [LDM] latent diffusion model in z-space learned by autoencoder
+# [MONAI] DiffusionModelUNet for 3D denoising backbone
+
+defaults:
+  - base
+
+stage: diffusion
+
+autoencoder_ckpt: outputs/checkpoints/autoencoder_best.pth
+
+model:
+  # [MONAI] DiffusionModelUNet
+  spatial_dims: 3
+  # in_channels = latent_channels (4) + mask channel (1) + healthy_context channel (1)
+  # [PROPOSAL] conditioning: concatenate tumor_mask + healthy_context to noisy latent
+  in_channels: 6
+  out_channels: 4            # predict noise in latent space
+  num_channels: [64, 128, 128]
+  attention_levels: [false, true, true]
+  num_res_blocks: 2
+  num_head_channels: 32
+  norm_num_groups: 16
+
+scheduler:
+  # [LDM] DDPM training, DDIM inference
+  num_train_timesteps: 1000
+  beta_schedule: scaled_linear
+  beta_start: 0.00085
+  beta_end: 0.012
+  # inference
+  num_inference_steps: 50    # [PROPOSAL challenge 3] fewer steps = cheaper
+
+training:
+  batch_size: 1
+  max_epochs: 500
+  lr: 1.0e-4
+  lr_scheduler: cosine
+  warmup_epochs: 10
+  val_interval: 25
+  save_best_metric: val_diffusion_loss
+
+  # [PROPOSAL Exp B] low-annotation curriculum
+  annotation_subsets: [1, 5, 10, null]  # null = all

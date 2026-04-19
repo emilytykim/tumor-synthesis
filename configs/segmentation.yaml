@@ -1,0 +1,41 @@
+# [PROPOSAL Stage 3] Segmentation training on synthetic (and optionally real) data
+# Baseline: 3D U-Net (MONAI); target: nnU-Net configuration
+
+defaults:
+  - base
+
+stage: segmentation
+
+synthesis_dir: outputs/samples    # generated (image, mask) pairs
+
+model:
+  # [PROPOSAL] 3D U-Net baseline backbone
+  backbone: unet               # unet | nnunet
+  spatial_dims: 3
+  in_channels: 1
+  out_channels: 2              # background + tumor
+  channels: [16, 32, 64, 128, 256]
+  strides: [2, 2, 2, 2]
+  num_res_units: 2
+  norm: batch
+
+training:
+  batch_size: 2
+  max_epochs: 300
+  lr: 1.0e-4
+  lr_scheduler: cosine
+  warmup_epochs: 10
+  val_interval: 10
+  save_best_metric: val_dice
+  # [PROPOSAL] hybrid: mix synthetic + small real set
+  hybrid_real_fraction: 0.1    # 10% real data mixed in
+
+experiments:
+  # [PROPOSAL Exp A] cross-organ generalization
+  cross_organ:
+    source_organs: [pancreas, liver, kidney]
+    target_organs: [pancreas, liver, kidney]
+  # [PROPOSAL Exp B] low-annotation
+  annotation_subsets: [1, 5, 10, null]
+  # [PROPOSAL Exp C] domain shift
+  corruptions: [gaussian_noise, blur, contrast, bias_field]

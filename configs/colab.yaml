@@ -1,0 +1,94 @@
+# Colab-optimized config: 64^3 patches, smaller model, pancreas only [ENG]
+# Designed to fit within Colab free T4 (15GB VRAM, 12hr session)
+
+stage: colab
+
+data:
+  organs: [pancreas]
+  raw_dir: /content/drive/MyDrive/tumor-synthesis/data/raw
+  cache_dir: /content/drive/MyDrive/tumor-synthesis/data/cache
+  patch_size: [64, 64, 64]      # 64^3 instead of 96^3 — fits T4 comfortably
+  ct_window: [-150, 250]
+  overlap: 0.25
+  num_workers: 2
+  pin_memory: true
+
+training:
+  seed: 42
+  device: cuda
+  amp: true
+  grad_clip: 1.0
+
+output:
+  checkpoint_dir: /content/drive/MyDrive/tumor-synthesis/outputs/checkpoints
+  sample_dir: /content/drive/MyDrive/tumor-synthesis/outputs/samples
+  log_dir: /content/drive/MyDrive/tumor-synthesis/outputs/logs
+
+# Stage 1 autoencoder (smaller)
+autoencoder:
+  model:
+    spatial_dims: 3
+    in_channels: 1
+    out_channels: 1
+    latent_channels: 4
+    channels: [16, 32, 32]        # half of original
+    attention_levels: [false, false, true]
+    num_res_blocks: 1             # 1 instead of 2
+    norm_num_groups: 8
+    kl_weight: 1.0e-6
+  training:
+    batch_size: 2
+    max_epochs: 100
+    lr: 1.0e-4
+    lr_scheduler: cosine
+    warmup_epochs: 5
+    val_interval: 10
+    amp: true
+
+# Stage 2 diffusion (smaller)
+diffusion:
+  autoencoder_ckpt: /content/drive/MyDrive/tumor-synthesis/outputs/checkpoints/autoencoder_best.pth
+  model:
+    spatial_dims: 3
+    in_channels: 6                # 4 (latent) + 1 (mask) + 1 (context placeholder)
+    out_channels: 4
+    num_channels: [32, 64, 64]    # smaller than original
+    attention_levels: [false, true, true]
+    num_res_blocks: 1
+    num_head_channels: 16
+    norm_num_groups: 8
+  scheduler:
+    num_train_timesteps: 1000
+    beta_schedule: scaled_linear
+    beta_start: 0.00085
+    beta_end: 0.012
+    num_inference_steps: 20       # fewer steps = faster synthesis
+  training:
+    batch_size: 1
+    max_epochs: 200
+    lr: 1.0e-4
+    lr_scheduler: cosine
+    warmup_epochs: 10
+    val_interval: 25
+    amp: true
+
+# Stage 3 segmentation
+segmentation:
+  model:
+    backbone: unet
+    spatial_dims: 3
+    in_channels: 1
+    out_channels: 2
+    channels: [16, 32, 64, 128, 128]
+    strides: [2, 2, 2, 2]
+    num_res_units: 2
+    norm: batch
+  training:
+    batch_size: 2
+    max_epochs: 150
+    lr: 1.0e-4
+    lr_scheduler: cosine
+    warmup_epochs: 10
+    val_interval: 10
+    hybrid_real_fraction: 0.1
+    amp: true

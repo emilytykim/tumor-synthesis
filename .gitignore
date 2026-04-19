@@ -1,0 +1,17 @@
+# MD files and notebooks excluded per project settings
+*.md
+notebooks/
+
+# Data and outputs (too large for git)
+data/raw/
+data/cache/
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# OS
+.DS_Store
