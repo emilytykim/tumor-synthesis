@@ -1,6 +1,7 @@
-# MD files excluded per project settings (except README)
+# MD files excluded per project settings (except README and presentation)
 *.md
 !README.md
+!presentation.md
 
 # Data and outputs (too large for git)
 data/raw/
