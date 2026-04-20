@@ -6,7 +6,10 @@
 # Data and outputs (too large for git)
 data/raw/
 data/cache/
-outputs/
+outputs/samples/pancreas/images/
+outputs/samples/pancreas/labels/
+outputs/checkpoints/
+outputs/eval_macbook.json
 
 # Python
 __pycache__/
