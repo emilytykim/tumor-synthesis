@@ -1,6 +1,5 @@
-# MD files and notebooks excluded per project settings
+# MD files excluded per project settings
 *.md
-notebooks/
 
 # Data and outputs (too large for git)
 data/raw/
